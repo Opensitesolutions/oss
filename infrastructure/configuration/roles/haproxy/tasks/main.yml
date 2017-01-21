@@ -1,0 +1,35 @@
+---
+
+- name: Install Haproxy
+  yum: name={{item}} state=present
+  with_items:
+    - haproxy
+  notify:
+    - start haproxy
+  tags:
+    - install haproxy
+    
+- name: Send haproxy configuration to server(s) 
+  copy:
+    src: haproxy.cfg
+    dest: /etc/haproxy/ 
+    owner: webgroup
+    group: webgroup
+  notify:
+    - restart haproxy
+  tags:
+    - copyover haconfig
+
+- name: Send haproxy special error codes
+  copy:
+    src: 503-error.http
+    dest: /etc/haproxy/errors/
+    owner: webgroup
+    group: webgroup
+  notify:
+     - restart haproxy
+  tags:
+     - copyover error codes
+
+- name: Ensure Haproxy is started and enabled.
+  service: name=haproxy state=started enabled=yes

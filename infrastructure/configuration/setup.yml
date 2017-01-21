@@ -1,0 +1,13 @@
+# Pass in action variable with -e optoin
+# ansible-playbook playbookfile -e "action=web"
+---
+- hosts: all
+  become: yes
+  become_method: sudo
+  user: vagrant
+  connection: ssh
+  gather_facts: yes
+  tasks:
+
+  roles:
+    - common

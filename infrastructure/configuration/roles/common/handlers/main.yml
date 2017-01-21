@@ -1,0 +1,14 @@
+---
+- name: Start NTPD on Redhat systems
+  service:
+     name: ntpd
+     state: started
+     enabled: True
+  when: ansible_os_family == "RedHat"
+
+- name: Start NTPD on Debian systems
+  service:
+    name: ntp
+    state: started
+    enabled: True
+  when: ansible_os_family == "Debian"

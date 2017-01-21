@@ -1,0 +1,39 @@
+# Install the necessary apache binary depending on the 
+# Family of Linux either apache2 or httpd
+---
+- name: Updating packages on Debian systems
+  apt: 
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Updating packages on Redhat systems
+  yum:
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == "Redhat"
+
+- name: Install Apache and accessories on Debian systems
+  apt: pkg={{item}} state=latest
+  with_items:
+   - apache2
+   - libapache2-mod-php5
+   - php5
+   - php5-cgi 
+  when: ansible_os_family == "Debian"
+  notify:
+    - start apache
+  tags:
+   - install_webapps
+
+- name: Install HTTPD and accessories
+  yum: pkg={{item}} state=latest
+  with_items:
+   - httpd
+   - php
+   - php-cgi
+  when: ansible_os_family == "RedHat"
+  notify: 
+    - start httpd
+  tags:
+    - install_webapps_debian

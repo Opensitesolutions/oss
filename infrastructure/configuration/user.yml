@@ -1,0 +1,55 @@
+---
+- hosts: all
+  user: vagrant
+  become: yes
+  become_method: sudo
+
+  tasks:
+
+  # Install libselinux-python which is required to install SSH keys
+  - name: Install libselinux-python Redhat environments
+    yum: pkg={{item}} state=latest
+    with_items:
+     - libselinux-python
+     - libsemanage-python
+    when: ansible_distribution == "CentOS"
+ 
+  - name: Add group automata
+    group:
+      name: automata
+      state: present
+
+  - name: Add group webgroup
+    group:
+      name: webgroup
+      state: present
+
+  - name: Add new user Automata
+    user: 
+      name: automata
+      comment: Deployment user
+      shell: /bin/bash
+      groups: automata,webgroup
+      state: present
+
+  - name: Add new user Webgroup
+    user: 
+      name: webgroup
+      comment: Web Group
+      shell: /bin/bash
+      groups: webgroup
+      state: present
+
+  - name: Install local public SSH key to Automata's ssh authorized key file
+    authorized_key:
+      user: automata
+      state: present
+      key: "{{ lookup('file','../../dev/.ssh/id_rsa.pub') }}"
+
+  - name: Give Automata sudo and elevated priviliges with no password required.
+    lineinfile:
+      dest: /etc/sudoers
+      state: present
+      regexp: '^vagrant ALL\='
+      line: 'automata ALL=(ALL) NOPASSWD:ALL' 
+      validate: 'visudo -cf %s'

@@ -1,0 +1,47 @@
+---
+- hosts: web
+  user: automata
+  become: true
+  become_method: sudo
+  tasks:
+
+  - name: Create web domain directory millsresidence.com
+    file: path=/var/www/millsresidence.com state=directory
+    when: ansible_os_family == "Debian"
+
+  - name: Create access log directory
+    file: path=/var/log/apache2/millsresidence.com-access.log state=touch
+    when: ansible_os_family == "Debian"
+
+  - name: create error log
+    file: path=/var/log/apache2/millsresidence.com-error.log state=touch
+    when: ansible_os_family == "Debian"
+
+  - name: Copy configuration millsresidence.com domain file to server
+    copy: src=files/millsresidence.com.conf dest=/etc/apache2/sites-available/
+    when: ansible_os_family == "Debian"
+
+  - name: Create symlink for millsresidence.com
+    file: src=/etc/apache2/sites-available/millsresidence.com.conf dest=/etc/apache2/sites-enabled/millsresidence.com.conf state=link
+    when: ansible_os_family == "Debian"
+
+  - name: Create access log directory
+    file: path=/var/log/apache2/millsresidence.com-access.log state=touch
+    when: ansible_os_family == "Debian"
+
+  - name: create error log
+    file: path=/var/log/apache2/millsresidence.com-error.log state=touch
+    when: ansible_os_family == "Debian"
+
+  - name: Deploy web apps
+    git:
+      repo: https://github.com/maxwayne-mills/becomeonewiththecode.com.git 
+      dest: /var/www/millsresidence.com 
+      version: dev
+    notify:
+      - restart apache 
+    when: ansible_os_family == "Debian"
+
+  handlers:
+    - name: restart apache
+      service: name=apache2 state=restarted

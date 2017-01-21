@@ -1,0 +1,80 @@
+---
+
+# Install libselinux-python which is required to install SSH keys
+- name: Install libselinux-python Redhat environments
+  yum: pkg={{item}} state=latest
+  with_items:
+   - libselinux-python
+   - libsemanage-python
+  when: ansible_distribution == "CentOS"
+ 
+- name: Add group automata
+  group:
+    name: automata
+    state: present
+
+- name: Add group webgroup
+  group:
+    name: webgroup
+    state: present
+
+- name: Add new user Automata
+  user: 
+    name: automata
+    comment: Deployment user
+    shell: /bin/bash
+    groups: automata,webgroup
+    state: present
+
+- name: Add new user Webgroup
+  user: 
+    name: webgroup
+    comment: Web Group
+    shell: /bin/bash
+    groups: webgroup
+    state: present
+
+- name: Install local public SSH key to Automata's ssh authorized key file
+  authorized_key:
+    user: automata
+    state: present
+    key: "{{ lookup('file','../../dev/.ssh/id_rsa.pub') }}"
+
+- name: Give Automata sudo and elevated priviliges with no password required.
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: '^vagrant ALL\='
+    line: 'automata ALL=(ALL) NOPASSWD:ALL' 
+    validate: 'visudo -cf %s'
+
+- name: Install defaults OS Apps on Redhat based systems
+  yum: name={{item}} state=latest
+  with_items:
+    - ntp
+    - git
+    - wget
+  when: ansible_os_family == "RedHat"
+  tags:
+    - install_redhatapps
+
+- name: Install defaults OS apps on Debian based systems
+  apt: name={{item}} state=latest
+  with_items:
+    - ntp
+    - git
+    - wget
+    - ssmtp
+  when: ansible_os_family == "Debian"
+  tags:
+    - install_debianapps
+
+ # Set timezone to UTC all systems should have same timezone
+- name:  Set Timezone to GMT
+  copy:
+    src: /usr/share/zoneinfo/GMT
+    dest: /etc/localtime
+    owner: root
+    group: root
+  tags:
+    - copyover_zoneinfo

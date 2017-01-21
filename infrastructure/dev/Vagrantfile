@@ -1,0 +1,53 @@
+Vagrant.configure("2") do |config|
+
+config.vm.define "lb_1" do |lb_1|
+  lb_1.vm.box = "bento/centos-6.7"
+  lb_1.vm.hostname = "lb"
+  lb_1.vm.network "public_network", :bridge => "wlp4s0", :ip => "192.168.1.210"
+  lb_1.vm.network "private_network", ip: "172.16.1.10"
+  lb_1.vm.network "forwarded_port", guest: 80, host: 8079
+  lb_1.vm.network "forwarded_port", guest: 1936, host: 1937
+  config.vm.provider "virtualbox" do |virt0|
+	virt0.memory = "1024"
+	virt0.name = "lb_1"
+ 	virt0.gui = false
+  end
+end
+
+config.vm.define "www1" do |www1|
+  www1.vm.box = "bento/centos-6.7"
+  www1.vm.hostname = "www1"
+  www1.vm.network "public_network", :bridge => "wlp4s0", :ip => "192.168.1.221"
+  www1.vm.network "private_network", auto_config: false, ip: "172.16.1.21"
+  www1.vm.network "forwarded_port", guest: 80, host: 8080
+  config.vm.provider "virtualbox" do |virt1|
+	virt1.memory = "1024"
+	virt1.name = "www1"
+	virt1.gui = false
+  end
+end
+
+config.vm.define "www2" do |www2|
+  www2.vm.box = "ubuntu/trusty64"
+  www2.vm.hostname = "www2"
+  www2.vm.network "public_network", :bridge => "wlp4s0", :ip => "192.168.1.222"
+  www2.vm.network "private_network", ip: "172.16.1.22"
+  www2.vm.network "forwarded_port", guest: 80, host: 8081
+  config.vm.provider "virtualbox" do |virt2|
+	virt2.memory = "1024"
+	virt2.name = "www2"
+	virt2.gui = false
+  end
+end
+
+config.vm.provision "ansible" do |ansible|
+      	ansible.playbook = "../configuration/setup.yml"
+      	ansible.verbose = "v"
+	ansible.groups = {
+		"lb" => ["lb_1"],
+		"web" => ["www1", "www2"],
+		"all:children" => ["lb","web"]
+	}
+end
+
+end

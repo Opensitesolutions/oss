@@ -1,0 +1,56 @@
+---
+- hosts: web
+  user: automata
+  become: true
+  become_method: sudo
+  gather_facts: yes
+  tasks:
+
+  - name: Copy web site 1 Test
+    template: 
+      src: files//index.html.j2
+      dest: /var/www/html/index.html
+      owner: webgroup
+      group: webgroup
+    notify:
+      - restart httpd
+    when: ansible_os_family == "RedHat"
+
+  - name: Create web domain directory test.com
+    file: path=/var/www/test.com state=directory
+    when: ansible_os_family == "Debian"
+
+  - name: Create access log directory
+    file: path=/var/log/apache2/test.com-access.log state=touch
+    when: ansible_os_family == "Debian"
+
+  - name: create error log
+    file: path=/var/log/apache2/test.com-error.log state=touch
+    when: ansible_os_family == "Debian"
+
+  - name: Copy configuration test.com.conf domain file to server
+    copy: src=test.com.conf dest=/etc/apache2/sites-available/
+    when: ansible_os_family == "Debian"
+
+  - name: Create symlink for test.com
+    file: src=/etc/apache2/sites-available/test.com.conf dest=/etc/apache2/sites-enabled/test.conf state=link
+    when: ansible_os_family == "Debian"
+
+  - name: Copy web site 2 test file
+    template:
+      src: files/index.html.j2
+      dest: /var/www/html/index.html
+      owner: webgroup
+      group: webgroup
+    notify: 
+      - restart apache
+    when: ansible_os_family == "Debian"
+
+  handlers:
+    - name: restart httpd
+      service: name=httpd state=restarted
+      when: ansible_os_family == "Redhat"
+
+    - name: restart apache
+      service: name=apache2 state=restarted
+      when: ansible_os_family == "Debian"

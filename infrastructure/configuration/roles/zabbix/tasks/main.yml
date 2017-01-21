@@ -1,0 +1,156 @@
+## This playbook will install on Debian based systems
+## the ansible control server needs to have zabbix-api installed
+## install zabbix api 'apt-get install python-pip' to allow ansible to
+## autocreate create, updates,deletes hosts, groups, maintenance and screens
+
+---
+  - name: Install Zabbix PPA in APT package list /etc/apt/sources.list
+    blockinfile:
+      dest: /etc/apt/sources.list
+      # Add the following lines of code to the bottom of the file
+      block: |
+        # Zabbix Application PPA
+        deb http://ppa.launchpad.net/tbfr/zabbix/ubuntu precise main
+        deb-src http://ppa.launchpad.net/tbfr/zabbix/ubuntu precise main
+    register: log_output
+
+  - name: Install Zabbix repository keys
+    apt_key: keyserver=keyserver.ubuntu.com id=C407E17D5F76A32B state=present
+    register: log_output
+
+  - name: Update packages
+    apt: update_cache=yes cache_valid_time=120
+    register: log_output
+
+  - name: Install zabbix packages
+    apt: pkg={{item}}
+    with_items:
+      - zabbix-server-mysql
+      - php5-mysql
+      - zabbix-frontend-php
+
+  - name: Install Apache2, PHP modules
+    apt: pkg={{item}}
+    with_items:
+      - apache2
+      - libapache2-mod-php5
+      - php5
+      - php5-cli
+      - python-pip
+
+## Configure Apache2 for Zabbix
+  - name: Enable Apache2 to start automatically
+    service: name=apache2 enabled=yes
+
+  - name: Copy zabbix virtualhost configuration file to web server
+    copy: src=zabbix.conf dest=/etc/apache2/conf-available/
+
+  - name: Copy zabbix virtualhost configuration file to web server
+    copy: src=zabbix.conf dest=/etc/apache2/sites-enabled/
+
+  - name: Check and create zabbix web directory
+    file: path=/var/www/zabbix state=directory mode=0755
+
+  - name: Copy Zabbix php configuration file
+    copy: src=zabbix.conf.php dest=/etc/zabbix/
+
+## Configure PHP configuration file for zabbix pre-requisites
+  - name: Adjust PHP Max size to 16M
+    lineinfile: dest=/etc/php5/apache2/php.ini state=present regexp="post_max_size = 8M" line="post_max_size = 16M"
+
+  - name: Adjust PHP configuration Max execution time to 300
+    lineinfile: dest=/etc/php5/apache2/php.ini state=present regexp="max_execution_time = 30" line="max_execution_time = 300"
+
+  - name: Adjust PHP configuration Max input time to 300
+    lineinfile: dest=/etc/php5/apache2/php.ini state=present regexp="max_input_time = 60" line="max_input_time = 300"
+
+  - name: Adjust PHP configuration Time zone
+    lineinfile: dest=/etc/php5/apache2/php.ini state=present insertafter=";date.timezone =" line="date.timezone = UTC"
+    notify:
+      - restart apache2
+
+# Mariadb repoository and keys need to be insalled after zabbix packages are installed, causes errors if installed prior to insall mariadb.
+  - name: Install ansible remote apps to be able to perform remote database commands
+    apt: pkg={{item}}
+    with_items:
+      - python-mysqldb
+
+  - name: Add Mariadb repository key to the system
+    apt_key: keyserver=keyserver.ubuntu.com id=0xcbcb082a1bb943db
+    register: log_output
+
+  - name: Install Mariadb repository
+    apt_repository: repo='deb http://ftp.igh.cnrs.fr/pub/mariadb/repo/10.0/ubuntu trusty main' state=present
+    register: log_output
+
+  - name: Install MariaDB Server
+    apt: name=mariadb-server state=latest update_cache=yes cache_valid_time=120
+    ignore_errors: yes
+
+  - name: Enable Mariadb to start automatically
+    service: name=mariadb enabled=yes
+    ignore_errors: yes
+
+
+## MYSQL database installations steps are taken from /usr/share/doc/zabbix-server-mysql/README.debian   ###
+###                                                                                                     ###
+
+# Configure Mysql with zabbix configuration options
+  - name: Create Mysql database zabbix
+    mysql_db: name=zabbix state=present
+
+  - name: Create mysql zabbix user
+    mysql_user: name=zabbix password=qm7BD01alpCE priv=zabbix.*:ALL,GRANT state=present
+
+## Unzip zabbix databases
+  - name: Unzip schema databases
+    command: gunzip /usr/share/zabbix-server-mysql/schema.sql.gz
+    ignore_errors: yes
+
+  - name: Unzip images schema databases
+    command: gunzip /usr/share/zabbix-server-mysql/images.sql.gz
+    ignore_errors: yes
+
+  - name: Unzip data schema databases
+    command: gunzip /usr/share/zabbix-server-mysql/data.sql.gz
+    ignore_errors: yes
+
+  - name: Import zabbix schema file into zabbix database.
+    mysql_db: state=import name=zabbix target=/usr/share/zabbix-server-mysql/schema.sql
+    ignore_errors: yes
+
+  - name: Import zabbix images schema file into zabbix Database
+    mysql_db: state=import name=zabbix target=/usr/share/zabbix-server-mysql/images.sql
+    ignore_errors: yes
+
+  - name: Import zabbix data schema sql file into zabbix database.
+    mysql_db: state=import name=zabbix target=/usr/share/zabbix-server-mysql/data.sql
+    ignore_errors: yes
+
+# In order for zabbix to start automatically on Unbuntu
+# Change /etc/default/zabbix-server option START=no to START=yes
+  - name: Change Zabbix start up file /etc/default/zabbix-server option to yes
+    lineinfile: dest=/etc/default/zabbix-server state=present regexp="START=no" line="START=yes"
+    register: change
+
+  - name: Enable zabbix to start automatically
+    service: name=zabbix-server enabled=yes
+    ignore_errors: yes
+
+  - name: Enable Zabbix to listen on port 10051
+    lineinfile: dest=/etc/zabbix/zabbix_server.conf state=present insertafter="ListenPort=10051" line="ListenPort=10051"
+
+## Recommended to change the password below
+  - name: Add zabbix password to zabbix configration file
+    lineinfile: dest=/etc/zabbix/zabbix_server.conf state=present insertafter="DBPassword=" line="DBPassword=qm7BD01alpCE"
+
+  - name: Start zabbix application service
+    command: cat /etc/default/zabbix-server
+    ## Handlers are case sensitive
+    notify:
+    - Start Zabbix
+
+  - name: Reload HTTPD configuration
+    command: cat /etc/resolv.conf
+    notify:
+    - Reload Apache2

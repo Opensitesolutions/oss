@@ -1,0 +1,17 @@
+HTTP/1.0 503 Service Unavailable
+Cache-Control: no-cache
+Connection: close
+Content-Type: text/html
+
+<html> 
+  <head>
+    <title>403 -  Service Unavailable</title>
+  </head> 
+  <body>
+    <div> 
+          <h2>OpenSiteSolutions Infrastructure</h2>
+	  <hr>
+          <h3>Maintenance Window</h3>
+    </div>
+  </body> 
+</html>

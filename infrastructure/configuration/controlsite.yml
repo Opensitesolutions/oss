@@ -1,0 +1,43 @@
+---
+- hosts: all
+  become: yes
+  become_method: sudo
+  remote_user: automata
+  gather_facts: true
+  tasks:
+
+  - name: Turn httpd service off
+    service: name=httpd state=stopped
+    when: ansible_os_family == "RedHat"
+    tags: 
+      - turn httpd off
+
+  - name: Turn httpd service on
+    service: name=httpd state=started
+    when: ansible_os_family == "RedHat"
+    tags: 
+      - turn httpd on
+
+  - name: Turn apache2 off
+    service: name=apache2 state=stopped
+    when: ansible_os_family == "Debian"
+    tags:
+      - turn apache off
+
+  - name: Turn apache2 on
+    service: name=apache2 state=started
+    when: ansible_os_family == "Debian"
+    tags:
+      - turn apache on
+
+  - name: Turn haproxy on
+    service: name=haproxy state=started
+    when: (ansible_os_family == "RedHat" and ansible_hostname == "lb")
+    tags: 
+      - turn haproxy on
+
+  - name: Turn haproxy off
+    service: name=haproxy state=stopped
+    when: (ansible_os_family == "RedHat" and ansible_hostname == "lb")
+    tags: 
+      - turn haproxy off

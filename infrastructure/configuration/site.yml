@@ -1,0 +1,18 @@
+# Host should contain user: automata and the common module should have ran via
+# setup.yml which installed based appas and users and groups
+---
+- hosts: lb
+  user: automata
+  become: yes
+  become_method: sudo
+  connection: ssh
+  roles:
+    - haproxy
+
+- hosts: web
+  user: automata
+  become: yes
+  become_method: sudo
+  connection: ssh
+  roles:
+    - apache

@@ -1,0 +1,47 @@
+---
+# handlers file for web
+- name: start apache
+  service:
+    name: apache2
+    state: started
+    enabled: true
+  when: ansible_os_family == "Debian"
+  tags:
+    - start apache
+
+- name: start httpd
+  service:
+    name: httpd
+    state: started
+    enabled: true
+  when: ansible_os_family == "RedHat"
+  tags:
+    - start httpd
+
+- name: Get status of httpd service
+  command: /etc/init.d/httpd status
+  register: httpd_status
+  ignore_errors: true
+  when: ansible_os_family == "RedHat"
+  tags:
+    - httpd_status
+
+- name: Display status of httpd service
+  debug: msg="{{ httpd_status.stdout }}"
+  when: ansible_os_family == "RedHat"
+  tags:
+      - httpd_status
+
+- name: Get status of Apache service
+  command: /etc/init.d/apache2 status
+  register: apache_status
+  ignore_errors: true
+  when: ansible_os_family == "Debian"
+  tags:
+    - apache_status
+
+- name: Display status of Apache service
+  debug: msg="{{ apache_status.stdout }}"
+  when: ansible_os_family == "Debian"
+  tags:
+    - apache_status

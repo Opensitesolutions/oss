@@ -1,0 +1,20 @@
+---
+- hosts: monitor
+  become: yes
+  become_method: sudo
+  user: automata
+  connection: ssh
+  roles:
+    - zabbix 
+  tags:
+    - install_monitor 
+
+#- hosts: cdi
+#  become: yes
+#  become_method: sudo
+#  user: automata
+#  connection: ssh
+#  roles:
+#    - jenkins
+#  tags:
+#    - install_jenkins

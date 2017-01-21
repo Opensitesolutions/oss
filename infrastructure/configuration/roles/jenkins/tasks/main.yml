@@ -1,0 +1,7 @@
+---
+
+- name: Install yum key for jenkins
+  yum_repository: 
+    description: Jenkins YUM Repo
+    baseurl: https://pkg.jenkins.io/redhat/jenkins.repo
+    enabled: yes
