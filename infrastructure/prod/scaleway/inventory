@@ -1,0 +1,6 @@
+srv4 ansible_host=163.172.144.173
+srv3 ansible_host=212.47.230.89
+
+[web]
+srv4
+srv3
